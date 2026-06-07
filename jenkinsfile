@@ -1,0 +1,49 @@
+pipeline {
+    agent any
+
+    stages {
+        stage('Checkout') {
+            steps {
+                echo 'Pulling latest code...'
+                checkout scm
+            }
+        }
+
+        stage('Install Dependencies') {
+            steps {
+                echo 'Installing npm packages...'
+                sh 'npm install'
+            }
+        }
+
+        stage('Run Tests') {
+            steps {
+                echo 'Running tests...'
+                sh 'npm test'
+            }
+        }
+
+        stage('Deploy') {
+            steps {
+                echo 'Deploying app...'
+                sh '''
+                    # Kill any existing instance
+                    pkill -f "node app.js" || true
+                    # Start the app in background
+                    nohup node app.js &
+                    sleep 2
+                    echo "App deployed! Running on port 3000"
+                '''
+            }
+        }
+    }
+
+    post {
+        success {
+            echo 'Pipeline SUCCESS - app is live!'
+        }
+        failure {
+            echo 'Pipeline FAILED - check the logs above'
+        }
+    }
+}
