@@ -23,19 +23,31 @@ pipeline {
             }
         }
 
-        stage('Deploy') {
-            steps {
-                echo 'Deploying app...'
-                sh '''
-                    # Kill any existing instance
-                    pkill -f "node app.js" || true
-                    # Start the app in background
-                    nohup node app.js &
-                    sleep 2
-                    echo "App deployed! Running on port 3000"
-                '''
-            }
-        }
+       stage('Deploy') {
+    steps {
+        echo 'Deploying app...'
+        sh '''
+            # Kill any existing instance
+            pkill -f "node app.js" || true
+            sleep 1
+
+            # setsid fully detaches from Jenkins shell session
+            setsid nohup node /var/lib/jenkins/workspace/hello-world-nodeJS/app.js \
+                > /tmp/hello-app.log 2>&1 &
+
+            sleep 2
+
+            # Verify it actually started
+            if curl -s http://localhost:3000 > /dev/null; then
+                echo "App is live on port 3000"
+            else
+                echo "App failed to start - check /tmp/hello-app.log"
+                cat /tmp/hello-app.log
+                exit 1
+            fi
+        '''
+    }
+}
     }
 
     post {
